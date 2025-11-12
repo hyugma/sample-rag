@@ -1,0 +1,39 @@
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.code-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.egg-info/
+*.dist-info/
+.pytest_cache/
+
+# Virtual env
+.venv/
+
+# Environment/config (local)
+.env
+.user.yml
+
+# Caches
+.cache/
+.cache/**
+
+# Data / DB artifacts
+rag_elt.db
+*.duckdb
+*.parquet
+
+# dbt artifacts (generated)
+rag_elt_dbt/logs/
+rag_elt_dbt/target/
+
+# Models (do not commit large local models)
+model.gguf
+
+# Node (not used, but safe)
+node_modules/

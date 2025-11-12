@@ -1,0 +1,22 @@
+[project]
+name = "sample-rag"
+version = "0.1.0"
+description = "Local RAG demo: ELT with DuckDB + dbt (Python model) + HF Transformers + Gradio"
+readme = "README.md"
+requires-python = ">=3.10"
+
+# Runtime dependencies (managed by uv via `uv sync`)
+dependencies = [
+  "duckdb",
+  "dbt-core",
+  "dbt-duckdb",
+  "transformers",
+  "torch",         # uv will resolve platform-appropriate wheel
+  "gradio",
+  "pandas",
+  "numpy",
+]
+
+[tool.uv]
+# Create and manage a local .venv and lock dependencies with `uv sync`
+# You can pin Python version by `uv python install 3.12` before `uv sync`.
