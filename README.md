@@ -1,40 +1,43 @@
-ローカルRAGデモ（PyLate + Transformers + Gradio）
+# ローカルRAGデモ（PyLate + Transformers + Gradio）
 
-<img width="1387" height="855" alt="スクリーンショット 2025-11-13 3 03 17" src="https://github.com/user-attachments/assets/b6920340-7c8e-4527-9296-6c321ed749a9" />
+<img width="800" alt="スクリーンショット 2025-11-13 3 03 17" src="https://github.com/user-attachments/assets/b6920340-7c8e-4527-9296-6c321ed749a9" />
 
-
-概要
+## 概要
 - PyLate（ColBERT Late Interaction）で高精度なトークン単位検索を行い、取得した文脈を HF Transformers のチャットモデルに与えて回答を生成するローカル RAG デモです。
 - ドキュメントは CSV（id, text）で管理し、検索用インデックスはローカルディレクトリ pylate-index/ に保存されます（.gitignore 済み）。
 - 既定のモデル:
   - Retriever: LiquidAI/LFM2-ColBERT-350M
   - Generator: LiquidAI/LFM2-1.2B-RAG
 
-クイックスタート
+## クイックスタート
 
 https://www.youtube.com/watch?v=D6Dr2vGgSZw
 
-1) 依存関係を用意
-- uv を利用する場合（推奨例）
-  - macOS（Homebrew）: brew install uv
-  - 依存同期: uv sync
-- または任意の仮想環境で requirements 相当をインストールしてください（pyproject.toml 参照）。
-
-2) アプリを起動
-- uv run python app.py
+1) 準備＆起動
+- git clone https://github.com/hyugma/sample-rag/
+  - ここのリポジトリを自分の環境にコピー （もしくは↑のYoutubeのようにZipとしてダウンロード）
+- curl -LsSf https://astral.sh/uv/install.sh | sh
+  - uv コマンドのインストール（なければ） 
+  - Windowsへのインストールは以下を参照
+  - https://docs.astral.sh/uv/getting-started/installation/
+- uv sync
+  - 必要なモジュールのインストール 
+- uv run app.py
   - ポートは 7860（GRADIO_SERVER_PORT/PORT で上書き可）
-- もしくは python app.py
+  - 初回起動時はembeddingモデルをDLするので１分くらい待つ可能性あり。
 
-3) 使い方（Gradio UI）
-- Data Prep タブ:
-  - UIより任意のCSVをアップロード/編集し、保存（input.csvとして保存）
+2) 使い方（Gradio UI）
+- Data Prep タブからデータ投入:
+  - すでに茨城県の素敵な情報がはいったCSVが付属してくるので利用してみるのもよろし。
+  - UIより任意のCSVをアップロード/編集し、保存（input.csvとして保存）する
   - 「PyLate インデックスを再構築」をクリックしてinput.csvからインデックス生成
 - RAG タブ:
-  - 質問と TopK を指定して送信
-  - 初回は生成モデルのダウンロードに同意（チェックボックス）すると自動取得します
-  - 取得文脈・スコア・最終プロンプト（テンプレート適用済み）がログに表示されます
+  - 初回は生成モデルのダウンロードに同意（チェックボックス）するとダウンロードする
+  - 質問と TopK を指定して送信する
+  - 取得文脈・スコア・最終プロンプト（テンプレート適用済み）がログに表示される
 
-内部処理フロー（ハイレベル）
+## 内部処理フロー（ハイレベル）
+
 1) データ管理
 - ユーザーが CSV（id, text）を用意 → input.csv
 - 「インデックス再構築」で PLAID 形式のインデックスを pylate-index/ に生成
@@ -55,7 +58,7 @@ https://www.youtube.com/watch?v=D6Dr2vGgSZw
 - 適切な EOS/PAD 設定で停止制御
 - 生成テキストを decode して回答として返却
 
-環境変数（主なもの）
+## 環境変数（主なもの）
 - EMBED_MODEL_NAME（既定: LiquidAI/LFM2-ColBERT-350M）
 - HF_CHAT_MODEL（既定: LiquidAI/LFM2-1.2B-RAG）
 - TOP_K（既定: 1）
@@ -63,12 +66,16 @@ https://www.youtube.com/watch?v=D6Dr2vGgSZw
 - PYLATE_INDEX_FOLDER（既定: pylate-index）
 - PYLATE_INDEX_NAME（既定: index）
 
-リポジトリ運用メモ
+## リポジトリ運用メモ
 - pylate-index/、大きなモデルファイル（*.safetensors など）は .gitignore 済み
 - input.csv は小規模サンプルであればコミット可（大きなデータは非推奨）
 - 依存は pyproject.toml（uv での運用を想定）
 
-クレジット
-- PyLate: https://github.com/lightonai/pylate
+## クレジット
+- Liquid AI: https://www.liquid.ai/ja
 - LFM2-ColBERT-350M: https://huggingface.co/LiquidAI/LFM2-ColBERT-350M
 - LFM2-1.2B-RAG: https://huggingface.co/LiquidAI/LFM2-1.2B-RAG
+- PyLate: https://github.com/lightonai/pylate
+
+## ライセンス
+- 煮るなり焼くなりしてお片付けはご自分で！
