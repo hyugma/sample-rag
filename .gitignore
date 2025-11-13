@@ -37,3 +37,17 @@ model.gguf
 
 # Node (not used, but safe)
 node_modules/
+
+# PyLate index
+pylate-index/
+
+# Model artifacts (do not commit large weights or checkpoints)
+*.safetensors
+*.bin
+*.pt
+*.onnx
+*.ckpt
+
+# Gradio/Notebook local artifacts
+.gradio/
+.ipynb_checkpoints/

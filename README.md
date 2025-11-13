@@ -1,123 +1,68 @@
-ローカルRAGデモ: ELT(Extract, Load, Transform) + dbt + DuckDB + HF Transformers + Gradio
+ローカルRAGデモ（PyLate + HF Transformers + Gradio）
 
 概要
-- 目的: ELT処理（E: CSV, L: DuckDB, T: dbtによる埋め込み生成）を実演し、その結果をRAGアプリで検索・生成に利用する最小構成のデモ。
-- 動作環境: Windows / macOS / Linux（Python 3.10+）
-- 主要技術:
-  - データベース: DuckDB
-  - トランスフォーム: dbt（Pythonモデル: dbt-py）
-  - Embeddingモデル: LiquidAI/LFM2-ColBERT-350M（Hugging Face）
-  - 生成モデル: HF Transformers（既定: LiquidAI/LFM2-1.2B-RAG）※GGUF/llama-cppは不要
-  - Webアプリ: Gradio
-  - 検索: Transformers + NumPy（コサイン類似度）
+- PyLate（ColBERT Late Interaction）で高精度なトークン単位検索を行い、取得した文脈を HF Transformers のチャットモデルに与えて回答を生成するローカル RAG デモです。
+- ドキュメントは CSV（id, text）で管理し、検索用インデックスはローカルディレクトリ pylate-index/ に保存されます（.gitignore 済み）。
+- 既定のモデル:
+  - Retriever: LiquidAI/LFM2-ColBERT-350M
+  - Generator: LiquidAI/LFM2-1.2B-RAG
 
-セットアップ（uv + uv sync 推奨）
+クイックスタート
+1) 依存関係を用意
+- uv を利用する場合（推奨例）
+  - macOS（Homebrew）: brew install uv
+  - 依存同期: uv sync
+- または任意の仮想環境で requirements 相当をインストールしてください（pyproject.toml 参照）。
 
-0. uv のインストール
-- macOS（Homebrew）:
-  - brew install uv
-- macOS/Linux（公式インストーラ）:
-  - curl -LsSf https://astral.sh/uv/install.sh | sh
-- Windows（PowerShell 管理者）:
-  - irm https://astral.sh/uv/install.ps1 | iex
-- 補足: インストール後、必要に応じて PATH を更新
-
-1. Python の用意（例: 3.12）
-- uv python install 3.12
-
-2. 依存関係の同期（.venv を自動作成）
-- uv sync
-  - 本リポジトリの pyproject.toml と uv.lock を元に .venv を作成し、依存を同期します
-  - 以降の実行は uv run ... でOK（手動でvenvを有効化する必要はありません）
-
-プロジェクト構成（主要）
-- pyproject.toml（uv/uv sync 用の依存定義、スクリプト定義）
-- input.csv（サンプル/編集対象のCSV）
-- load_to_duckdb.py（CSV → DuckDB: raw_documents）
-- rag_elt.db（スクリプト/変換後に生成）
-- rag_elt_dbt/
-  - dbt_project.yml
-  - models/
-    - transform_with_embeddings.py（Transformers + 平均プーリングで埋め込み生成）
-    - raw_documents.sql（任意のラップ用）
-- profiles.yml（dbt-duckdb 設定: path=rag_elt.db）
-- app.py（Gradioアプリ：RAG/前処理/SQL Explorer）
-
-Step 1: CSV（E: Extract）
-- input.csv を用意（最低限 id, text 列）
-- サンプル:
-  ```
-  id,text
-  1,"DuckDBはシングルファイルで動作する高速な分析データベースです。"
-  2,"dbtはSQLやPythonを使って変換処理をモデル化できるデータ変換フレームワークです。"
-  3,"RAGは検索で得た文脈をLLMに与えて回答精度を高める手法です。"
-  ```
-
-Step 2: DuckDBへロード（L: Load）
-- uv run python load_to_duckdb.py
-  - load_to_duckdb.py が input.csv を読み込み、rag_elt.db に raw_documents を再作成します
-
-Step 3: dbt で埋め込み生成（T: Transform）
-- プロファイル（profiles.yml）例:
-  ```
-  rag_elt_dbt:
-    target: dev
-    outputs:
-      dev:
-        type: duckdb
-        path: rag_elt.db
-        threads: 4
-        schema: main
-        settings:
-          memory_limit: "1GB"
-  ```
-- 変換実行:
-  - uv run dbt debug --project-dir rag_elt_dbt --profiles-dir .
-  - uv run dbt run --project-dir rag_elt_dbt --profiles-dir .
-- 結果:
-  - rag_elt.db に final_documents（id, text, embedding=list[float]）が作成されます
-- 実装メモ:
-  - models/transform_with_embeddings.py は Transformers 経由で LiquidAI/LFM2-ColBERT-350M を使用し、平均プーリング＋L2正規化でベクトル化します（sentence-transformers の 'MaxSim' 問題を回避）
-
-Step 4: RAG + Gradio アプリ
-- 起動:
-  - uv run python app.py               # 既定ポート
-  - PORT=7868 uv run python app.py     # ポートを指定したい場合の例
-- UI 機能:
-  - タブ「RAG」:
-    - TopK（取得件数）: 数値入力（上下ステッパー）
-    - 内部ログ: 取得コンテキスト、スコア、LLMへの最終プロンプトを表示
-    - 生成モデルはローカル未所持時、チェックボックスで同意するとHFから自動ダウンロード
-  - タブ「Data Prep」:
-    - CSVアップロード/編集 → input.csv 保存 → DuckDBへ raw_documents 再ロード
-    - 「dbt 変換を実行」で final_documents を再生成
-  - タブ「SQL Explorer」:
-    - テーブル一覧の更新、テンプレート挿入（SELECT * FROM <table> LIMIT 50）
-    - 任意SQLの実行結果表示
-
-コマンド例（スクリプトエイリアスなし）
-- uv run python load_to_duckdb.py
-- uv run dbt debug --project-dir rag_elt_dbt --profiles-dir .
-- uv run dbt run --project-dir rag_elt_dbt --profiles-dir .
+2) アプリを起動
 - uv run python app.py
-- PORT=7860 uv run python app.py
-- PORT=7868 uv run python app.py
+  - ポートは 7860（GRADIO_SERVER_PORT/PORT で上書き可）
+- もしくは python app.py
 
-トラブルシューティング
-- uv が見つからない:
-  - macOS: brew install uv
-  - curl/PowerShell のインストーラで再インストール
-- Transformers のモデルダウンロードが遅い/失敗する:
-  - ネットワーク環境を確認
-  - アクセス制限のあるモデルは Hugging Face のトークン設定が必要な場合あり
-- dbt が rag_elt.db に接続できない:
-  - profiles.yml の path が rag_elt.db を指していること
-  - uv run dbt debug --project-dir rag_elt_dbt --profiles-dir . で検証
-- メモリ/速度:
-  - 生成器は環境に応じて自動で dtype を選択（CUDA/MPSなら float16、その他は float32）
-  - Apple Silicon の場合は MPS を自動利用
+3) 使い方（Gradio UI）
+- Data Prep タブ:
+  - UIより任意のCSVをアップロード/編集し、保存（input.csvとして保存）
+  - 「PyLate インデックスを再構築」をクリックしてinput.csvからインデックス生成
+- RAG タブ:
+  - 質問と TopK を指定して送信
+  - 初回は生成モデルのダウンロードに同意（チェックボックス）すると自動取得します
+  - 取得文脈・スコア・最終プロンプト（テンプレート適用済み）がログに表示されます
 
-変更履歴（セットアップの uv 化）
-- 以前の venv + pip 手順は廃止し、uv + uv sync を標準手順に変更
-- pyproject.toml で依存を管理し、uv run -s スクリプトで操作を簡略化
-- GGUF/llama-cpp の事前配置は不要（生成は HF Transformers 経由）。未所持時は同意ダウンロードで対応
+内部処理フロー（ハイレベル）
+1) データ管理
+- ユーザーが CSV（id, text）を用意 → input.csv
+- 「インデックス再構築」で PLAID 形式のインデックスを pylate-index/ に生成
+- id → 原文のマッピングを id2text.json に保存
+
+2) 検索（Late Interaction）
+- クエリを ColBERT エンコーダでベクトル化（is_query=True）
+- PLAID インデックスから TopK を取得
+- 取得 id を id2text.json で本文に引き当て
+
+3) プロンプト組み立て
+- 取得した文脈とユーザー質問から chat メッセージ配列を構築（system/user）
+- tokenizer.apply_chat_template(messages, add_generation_prompt=True) でモデル固有のチャットテンプレートを適用
+- ログには「Rendered prompt」としてテンプレート適用後の実体を出力
+
+4) 生成
+- apply_chat_template(..., tokenize=True, return_tensors="pt") でトークナイズした入力を model.generate に渡す
+- 適切な EOS/PAD 設定で停止制御
+- 生成テキストを decode して回答として返却
+
+環境変数（主なもの）
+- EMBED_MODEL_NAME（既定: LiquidAI/LFM2-ColBERT-350M）
+- HF_CHAT_MODEL（既定: LiquidAI/LFM2-1.2B-RAG）
+- TOP_K（既定: 1）
+- GRADIO_SERVER_PORT または PORT（既定: 7860）
+- PYLATE_INDEX_FOLDER（既定: pylate-index）
+- PYLATE_INDEX_NAME（既定: index）
+
+リポジトリ運用メモ
+- pylate-index/、大きなモデルファイル（*.safetensors など）は .gitignore 済み
+- input.csv は小規模サンプルであればコミット可（大きなデータは非推奨）
+- 依存は pyproject.toml（uv での運用を想定）
+
+クレジット
+- PyLate: https://github.com/lightonai/pylate
+- LFM2-ColBERT-350M: https://huggingface.co/LiquidAI/LFM2-ColBERT-350M
+- LFM2-1.2B-RAG: https://huggingface.co/LiquidAI/LFM2-1.2B-RAG
