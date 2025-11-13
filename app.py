@@ -240,6 +240,13 @@ def generate_with_hf_chat(messages: list[dict]) -> str:
         # BatchEncoding or dict-like
         inputs = model_inputs
 
+    # Ensure attention_mask is present to avoid pad/eos ambiguity warnings
+    if "attention_mask" not in inputs:
+        try:
+            inputs["attention_mask"] = torch.ones_like(inputs["input_ids"], dtype=torch.long, device=inputs["input_ids"].device)
+        except Exception:
+            inputs["attention_mask"] = torch.ones_like(inputs["input_ids"], dtype=torch.long)
+
     # Collect reasonable EOS token ids (model-specific special tokens included if present)
     eos_ids = set()
     if getattr(chat_tokenizer, "eos_token_id", None) is not None:
@@ -288,6 +295,13 @@ def stream_generate_with_hf_chat(messages: list[dict]):
         inputs = {"input_ids": model_inputs}
     else:
         inputs = model_inputs
+
+    # Ensure attention_mask is present to avoid pad/eos ambiguity warnings
+    if "attention_mask" not in inputs:
+        try:
+            inputs["attention_mask"] = torch.ones_like(inputs["input_ids"], dtype=torch.long, device=inputs["input_ids"].device)
+        except Exception:
+            inputs["attention_mask"] = torch.ones_like(inputs["input_ids"], dtype=torch.long)
 
     # EOS/PAD setup
     eos_ids = set()
