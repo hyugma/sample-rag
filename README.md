@@ -1,4 +1,7 @@
-ローカルRAGデモ（PyLate + HF Transformers + Gradio）
+ローカルRAGデモ（PyLate + Transformers + Gradio）
+
+<img width="1387" height="855" alt="スクリーンショット 2025-11-13 3 03 17" src="https://github.com/user-attachments/assets/b6920340-7c8e-4527-9296-6c321ed749a9" />
+
 
 概要
 - PyLate（ColBERT Late Interaction）で高精度なトークン単位検索を行い、取得した文脈を HF Transformers のチャットモデルに与えて回答を生成するローカル RAG デモです。
@@ -8,6 +11,9 @@
   - Generator: LiquidAI/LFM2-1.2B-RAG
 
 クイックスタート
+
+https://www.youtube.com/watch?v=D6Dr2vGgSZw
+
 1) 依存関係を用意
 - uv を利用する場合（推奨例）
   - macOS（Homebrew）: brew install uv
